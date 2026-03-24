@@ -3,148 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Concego Rolador de Dados</title>
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="manifest" href="manifest.json">
+    <title>Concego Rolador</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 15px; line-height: 1.6; background-color: #f4f4f4; }
-        .container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .mascote { text-align: center; margin-bottom: 15px; }
-        .resultado { margin-top: 20px; font-weight: bold; border: 2px solid #333; padding: 15px; background-color: #e9f5ff; border-radius: 5px; }
-        .historico { margin-top: 25px; border-top: 2px solid #ddd; padding-top: 10px; }
+        body { font-family: sans-serif; max-width: 500px; margin: 10px auto; padding: 15px; background-color: #f4f4f4; color: #333; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); text-align: center; }
+        h1 { font-size: 1.5rem; margin-bottom: 15px; }
+        input { width: 90%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; }
+        button { padding: 12px 20px; cursor: pointer; background-color: #2c3e50; color: white; border: none; border-radius: 8px; font-weight: bold; margin: 5px; }
+        .resultado { margin-top: 20px; font-weight: bold; border-left: 5px solid #2c3e50; padding: 15px; background-color: #e9f5ff; text-align: left; min-height: 40px; }
+        .historico { margin-top: 20px; text-align: left; border-top: 1px solid #ccc; font-size: 0.9rem; }
         .escondido { display: none; }
-        input { padding: 12px; width: calc(100% - 24px); margin-bottom: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-        button { padding: 12px 20px; cursor: pointer; background-color: #2c3e50; color: white; border: none; border-radius: 5px; font-size: 16px; margin-right: 5px; }
-        button:hover { background-color: #34495e; }
-        ul { padding-left: 20px; }
-        li { margin-bottom: 5px; font-size: 0.9em; color: #555; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 8px 0; border-bottom: 1px solid #eee; }
+        img { max-width: 120px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <main id="tela-principal">
-            <div class="mascote">
-                <img src="dragaotec.png" 
-                     alt="Mascote: Um dragão verde estilo cartoon com escamas brilhantes, asas e chifres alaranjados. Ele usa um headset preto no pescoço e óculos VR escuros." 
-                     width="180">
-            </div>
-
-            <h1>Bem-vindo ao Concego rolador</h1>
+            <img src="dragaotec.png" alt="Mascote: Dragão verde com headset e óculos VR.">
+            <h1>Concego Rolador</h1>
             
-            <label for="input-rolagem">Digite sua rolagem (Ex: 3d6, 4d6-L, 2d20-H, 1d20+4>=15):</label>
-            <input type="text" id="input-rolagem" placeholder="Ex: 4d6-L">
-            
-            <button id="btn-rolar">Rolar Dados</button>
+            <label for="input-rolagem" class="escondido">Comando de dados</label>
+            <input type="text" id="input-rolagem" placeholder="Ex: 3d6+2 ou 1d20" aria-label="Digite sua rolagem">
+            <br>
+            <button id="btn-rolar">ROLAR!</button>
             <button id="btn-ajuda">Ajuda</button>
 
             <div id="area-resultado" class="resultado" aria-live="polite">
-                Aguardando sua primeira rolagem...
+                Aguardando sua rolagem...
             </div>
 
             <section class="historico">
-                <h2>Últimas 5 rolagens</h2>
-                <ul id="lista-historico">
-                    <li>Nenhuma rolagem registrada.</li>
-                </ul>
+                <h3>Últimas 5 rolagens:</h3>
+                <ul id="lista-historico"></ul>
+                <button id="btn-limpar" style="background:#c0392b; font-size:11px; padding:5px 10px;">Limpar Histórico</button>
             </section>
         </main>
 
         <section id="tela-ajuda" class="escondido">
-            <h2>Como usar o rolador</h2>
-            <p>Use o formato <strong>XdY</strong>, onde X é a quantidade e Y os lados.</p>
-            <ul>
-                <li><strong>-L:</strong> Exclui o menor resultado.</li>
-                <li><strong>-H:</strong> Exclui o maior resultado.</li>
-                <li><strong>+ ou -:</strong> Soma bônus fixos (Ex: 2d10+5).</li>
-                <li><strong>>= ou <=:</strong> Verifica sucesso (Ex: 1d20>=12).</li>
-            </ul>
+            <h2>Como usar:</h2>
+            <p><strong>XdY:</strong> X dados de Y lados.</p>
+            <p><strong>-L ou -H:</strong> Descarta o menor ou o maior.</p>
+            <p><strong>+ ou -:</strong> Bônus fixo.</p>
+            <p><strong>>=:</strong> Teste de sucesso (ex: 1d20>=15).</p>
             <button id="btn-voltar">Voltar</button>
         </section>
     </div>
 
     <script>
         const input = document.getElementById('input-rolagem');
-        const areaResultado = document.getElementById('area-resultado');
-        const listaHistorico = document.getElementById('lista-historico');
-        const telaPrincipal = document.getElementById('tela-principal');
-        const telaAjuda = document.getElementById('tela-ajuda');
-        let historico = [];
+        const resArea = document.getElementById('area-resultado');
+        const histLista = document.getElementById('lista-historico');
+        
+        // SONS DINÂMICOS (Baseados na sua gravação original)
+        const somUnico = new Audio('sons/rolagem1.wav');
+        const somVarios = new Audio('sons/rolagem2.wav');
 
-        // Efeito sonoro sintético
-        function tocarSom() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(200, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.1);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.1);
+        let historico = JSON.parse(localStorage.getItem('histConcego')) || [];
+
+        function renderizar() {
+            histLista.innerHTML = historico.map(h => `<li>${h}</li>`).join('') || "<li>Nenhuma rolagem ainda.</li>";
+            localStorage.setItem('histConcego', JSON.stringify(historico));
         }
+        renderizar();
 
-        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') rolar(); });
+        input.onkeypress = (e) => { if(e.key === 'Enter') rolar(); };
         document.getElementById('btn-rolar').onclick = rolar;
-        document.getElementById('btn-ajuda').onclick = () => {
-            telaPrincipal.classList.add('escondido');
-            telaAjuda.classList.remove('escondido');
+        document.getElementById('btn-limpar').onclick = () => { historico = []; renderizar(); };
+        
+        // Navegação de Telas
+        document.getElementById('btn-ajuda').onclick = () => { 
+            document.getElementById('tela-principal').classList.add('escondido'); 
+            document.getElementById('tela-ajuda').classList.remove('escondido'); 
             document.getElementById('btn-voltar').focus();
         };
-        document.getElementById('btn-voltar').onclick = () => {
-            telaAjuda.classList.add('escondido');
-            telaPrincipal.classList.remove('escondido');
-            input.focus();
+        document.getElementById('btn-voltar').onclick = () => { 
+            document.getElementById('tela-ajuda').classList.add('escondido'); 
+            document.getElementById('tela-principal').classList.remove('escondido'); 
+            input.focus(); 
         };
+
+        function tocarSom(qtd) {
+            // Se for 1 dado, usa rolagem1. Se for mais, usa rolagem2.
+            const audio = (qtd === 1) ? somUnico : somVarios;
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Clique na tela para habilitar o som."));
+        }
 
         function rolar() {
             const val = input.value.trim().toLowerCase();
-            if (!val) return;
-            tocarSom();
+            if(!val) return;
 
             try {
-                const regex = /^(\d+)d(\d+)([-+]?[a-z0-9]*)?([><]=?\d+)?$/;
-                const match = val.match(regex);
-                if (!match) { areaResultado.innerText = "Formato inválido!"; return; }
+                const match = val.match(/^(\d+)d(\d+)([-+]?[a-z0-9]*)?([><]=?\d+)?$/);
+                if(!match) { 
+                    resArea.innerText = "Formato inválido! Tente algo como 2d6+4"; 
+                    return; 
+                }
 
                 let [_, qtd, lados, mod, alvo] = match;
                 qtd = parseInt(qtd); lados = parseInt(lados);
+
+                // Dispara o som baseado na quantidade antes do cálculo
+                tocarSom(qtd);
+
                 let dados = Array.from({length: qtd}, () => Math.floor(Math.random() * lados) + 1);
-                let copiaDados = [...dados];
+                let originais = [...dados];
                 let desc = "";
 
-                if (mod) {
-                    if (mod.includes('-l')) {
-                        dados.sort((a,b) => a-b).shift();
-                        desc = " (Menor descartado)";
-                    } else if (mod.includes('-h')) {
-                        dados.sort((a,b) => b-a).shift();
-                        desc = " (Maior descartado)";
-                    }
-                }
+                if(mod?.includes('-l')) { dados.sort((a,b)=>a-b).shift(); desc = " (Descartou menor)"; }
+                else if(mod?.includes('-h')) { dados.sort((a,b)=>b-a).shift(); desc = " (Descartou maior)"; }
 
-                let total = dados.reduce((a,b) => a+b, 0);
                 let bonus = parseInt(mod?.replace('-l','').replace('-h','')) || 0;
-                total += bonus;
+                let total = dados.reduce((a,b)=>a+b, 0) + bonus;
 
-                let resSucesso = "";
-                if (alvo) {
+                let suc = "";
+                if(alvo) {
                     const op = alvo.match(/[><]=?/)[0];
-                    const numAlvo = parseInt(alvo.replace(op, ""));
-                    resSucesso = eval(`${total} ${op} ${numAlvo}`) ? " - SUCESSO!" : " - FALHA!";
+                    const numAlvo = parseInt(alvo.replace(op,''));
+                    suc = (eval(`${total} ${op} ${numAlvo}`)) ? " - SUCESSO!" : " - FALHA!";
                 }
 
-                const msg = `Rolagem ${val}: [${copiaDados.join(', ')}]${desc}. Total: ${total}${resSucesso}`;
-                areaResultado.innerText = msg;
-                
+                const msg = `Rolou ${val}: [${originais.join(',')}]${desc}. Total: ${total}${suc}`;
+                resArea.innerText = msg;
+
+                // Atualiza Histórico
                 historico.unshift(msg);
-                if (historico.length > 5) historico.pop();
-                listaHistorico.innerHTML = historico.map(h => `<li>${h}</li>`).join('');
+                if(historico.length > 5) historico.pop();
+                renderizar();
                 
                 input.value = '';
-            } catch (e) {
-                areaResultado.innerText = "Erro no cálculo.";
+                input.focus();
+            } catch(e) { 
+                resArea.innerText = "Erro ao processar os dados."; 
             }
         }
     </script>
